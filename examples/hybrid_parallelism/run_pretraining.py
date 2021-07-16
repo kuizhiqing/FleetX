@@ -413,6 +413,18 @@ def train(args):
         else:
             paddle.fluid.io.load_vars(exe, "./saved_model", main_program=train_program, predicate=predicate)
 
+    checkpoint_path = "./chkpt/{}".format(fleet.worker_index())
+    def predicate(var):
+        if os.path.exists('checkpoint_path/%s'%var.name):
+            return True
+        return False
+    if args.num_pp > 1:
+        paddle.fluid.io.load_vars(exe, checkpoint_path, main_program=train_program._pipeline_opt['section_program'], predicate=predicate)
+        print("load checkpoint ok")
+    else:
+        paddle.fluid.io.load_vars(exe, checkpoint_path, main_program=train_program, predicate=predicate)
+        print("load checkpoint ok")
+
     if args.use_amp:
         optimizer.amp_init(place)
 
@@ -587,6 +599,9 @@ def train(args):
                     start_time = time.time()
 
             if steps > 0 and args.save_steps > 0 and steps % args.save_steps == 0:
+                log.info("save checkpoint step {}".format(steps))
+                save_persistables(exe, checkpoint_path, train_program)
+
                 if args.use_hybrid_dp and fleet.worker_index() > 8:
                     continue
                 save_path = os.path.join(output_dir, 'step_' + str(steps))
@@ -600,6 +615,7 @@ def train(args):
                 save_persistables(exe, save_path, train_program)
                 log.debug("saving final models to {}".format(save_path))
                 log.debug("end of training, total steps: {}".format(steps))
+                data_loader.reset()
                 break
         data_loader.reset()
 

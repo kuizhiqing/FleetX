@@ -26,7 +26,7 @@ run_pretraining.py \
 	--ernie_config_file config/ernie_base_config.json \
 	--learning_rate 1e-4 \
 	--log_steps 1 \
-	--num_train_steps 11 \
+	--num_train_steps 41 \
 	--save_steps 10 \
 	--output_dir ${output_dir} \
 	--use_recompute true \
